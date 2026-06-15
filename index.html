@@ -1,1 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>운동 기록</title>
+<style>
+  :root{
+    --sky-50:#f0f7ff;
+    --sky-100:#dcecff;
+    --sky-200:#bcdcff;
+    --sky-300:#8fc4ff;
+    --sky-400:#5aa6f5;
+    --sky-500:#3b8de8;
+    --sky-600:#2a72c5;
+    --mint-100:#dcf5ee;
+    --mint-600:#1e9e7e;
+    --ink:#1c2b3a;
+    --ink-soft:#5a6b7d;
+    --line:#e3edf7;
+    --white:#ffffff;
+    --shadow:0 1px 3px rgba(40,90,150,.08), 0 8px 24px rgba(40,90,150,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",system-ui,sans-serif;
+    background:linear-gradient(180deg,var(--sky-50) 0%, #e8f2fc 100%);
+    color:var(--ink);
+    min-height:100vh;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px;}
+
+  header{margin-bottom:18px;}
+  .title{
+    font-size:24px;font-weight:800;letter-spacing:-.5px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .title .dot{width:10px;height:10px;border-radius:50%;background:var(--sky-400);display:inline-block;}
+  .sub{color:var(--ink-soft);font-size:13px;margin-top:4px;}
+
+  .banner{
+    background:#fff6e0;border:1px solid #f0dca8;color:#8a6d1f;
+    border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;
+  }
+  .banner.show{display:block;}
+
+  .datebar{
+    background:var(--white);border:1px solid var(--line);border-radius:16px;
+    padding:12px 14px;display:flex;align-items:center;gap:8px;margin-bottom:16px;
+    box-shadow:var(--shadow);
+  }
+  .day-nav{
+    border:1px solid var(--line);background:var(--sky-50);color:var(--sky-600);
+    width:36px;height:38px;border-radius:10px;font-size:14px;cursor:pointer;
+    flex-shrink:0;font-weight:700;transition:.15s;
+  }
+  .day-nav:hover{background:var(--sky-100);}
+  input[type="date"]{
+    font-family:inherit;font-size:16px;font-weight:600;color:var(--ink);
+    border:1px solid var(--line);background:var(--sky-50);
+    border-radius:10px;padding:7px 10px;outline:none;flex:1;min-width:0;
+  }
+  input[type="date"]:focus{border-color:var(--sky-400);box-shadow:0 0 0 3px rgba(90,166,245,.15);}
+  .saved-tag{
+    font-size:11px;color:var(--sky-600);background:var(--sky-100);
+    padding:4px 8px;border-radius:20px;font-weight:600;text-align:center;flex-shrink:0;
+    white-space:nowrap;
+  }
+  .saved-tag.saving{color:#8a6d1f;background:#fff3d6;}
+  .saved-tag.error{color:#c0392b;background:#ffe3e0;}
+
+  .recorded-days{
+    font-size:12px;color:var(--ink-soft);margin:-6px 0 14px 4px;
+  }
+  .recorded-days .chip{
+    display:inline-block;background:var(--white);border:1px solid var(--line);
+    border-radius:14px;padding:2px 10px;margin:2px 3px 0 0;cursor:pointer;
+    font-weight:600;color:var(--sky-600);transition:.15s;
+  }
+  .recorded-days .chip:hover{background:var(--sky-100);}
+  .recorded-days .chip.today-chip{background:var(--sky-400);color:#fff;border-color:var(--sky-400);}
+
+  /* ===== 표 공통 ===== */
+  .table-card{
+    background:var(--white);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px;
+  }
+  .table-label{
+    font-size:12px;font-weight:800;color:var(--ink-soft);
+    padding:10px 14px 0;letter-spacing:.3px;
+  }
+  .table-label.cardio{color:var(--mint-600);}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{
+    border-collapse:separate;border-spacing:0;width:100%;min-width:max-content;
+  }
+  th,td{
+    border-bottom:1px solid var(--line);
+    padding:0;text-align:center;vertical-align:middle;
+  }
+  thead th{
+    background:var(--sky-100);color:var(--sky-600);
+    font-size:11px;font-weight:700;padding:8px 2px;
+    position:sticky;top:0;
+  }
+  .cardio-table thead th{background:var(--mint-100);color:var(--mint-600);}
+  thead th.name-col{text-align:left;padding-left:10px;}
+  .name-col{
+    position:sticky;left:0;z-index:2;
+    background:var(--white);
+    min-width:72px;max-width:88px;
+    border-right:1px solid var(--line);
+  }
+  thead th.name-col{background:var(--sky-100);z-index:3;}
+  .cardio-table thead th.name-col{background:var(--mint-100);}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .name-cell{
+    display:flex;flex-direction:column;align-items:stretch;gap:1px;
+    padding:5px 4px 4px 8px;
+  }
+  .ex-name-btn{
+    width:100%;border:none;background:transparent;text-align:left;
+    font-family:inherit;font-size:12px;font-weight:700;color:var(--ink);
+    padding:2px 0;cursor:pointer;line-height:1.35;
+    word-break:keep-all;overflow-wrap:break-word;
+  }
+  .ex-name-btn.placeholder{color:#aec3d6;font-weight:600;}
+  .name-btns{display:flex;flex-direction:row;gap:2px;flex-shrink:0;}
+  .mini-btn{
+    border:none;background:transparent;font-size:10px;cursor:pointer;
+    width:20px;height:18px;border-radius:5px;padding:0;line-height:1;
+    color:#c2d2e2;display:flex;align-items:center;justify-content:center;
+  }
+  .mini-btn:hover{background:var(--sky-50);}
+  .mini-btn.memo.has-memo{color:var(--sky-500);}
+  .mini-btn.del:hover{background:#ffe0e0;color:#e05555;}
+  .mini-btn.del.arm{
+    background:#e05555;color:#fff;width:auto;padding:0 5px;font-size:9px;font-weight:700;
+  }
+
+  .set-cell{min-width:52px;padding:0;}
+  .cell-btn{
+    width:100%;height:100%;min-height:46px;border:none;background:transparent;
+    font-family:inherit;font-size:11px;font-weight:600;color:var(--ink);
+    cursor:pointer;padding:4px 2px;transition:.12s;line-height:1.3;
+  }
+  .cell-btn:hover{background:var(--sky-50);}
+  .cell-btn .w{display:block;color:var(--sky-600);font-weight:700;font-size:12px;}
+  .cell-btn .r{display:block;font-size:10px;color:var(--ink-soft);}
+  .cell-btn.blank{color:#c2d2e2;font-size:14px;font-weight:400;}
+  .add-col .cell-btn{color:var(--sky-400);font-size:15px;}
+  .add-col{min-width:34px !important;}
+  .cardio-table .cell-btn .w{color:var(--mint-600);}
+  .time-cell{min-width:110px;}
+
+  .memo-row td{
+    background:var(--sky-50);border-bottom:1px solid var(--line);padding:8px 12px;
+  }
+  .memo-row textarea{
+    width:100%;min-height:44px;resize:vertical;font-family:inherit;font-size:16px;
+    color:var(--ink);border:1px solid var(--line);background:var(--white);
+    border-radius:8px;padding:8px 10px;outline:none;line-height:1.5;
+  }
+  .memo-row textarea:focus{border-color:var(--sky-400);}
+  .memo-row textarea::placeholder{color:#aec3d6;font-size:13px;}
+
+  .empty-state{
+    text-align:center;color:var(--ink-soft);padding:34px 16px;font-size:14px;
+  }
+  .empty-state .big{font-size:30px;margin-bottom:6px;}
+
+  .add-btns{display:flex;gap:10px;}
+  .add-ex{
+    flex:1;border:none;border-radius:16px;
+    background:linear-gradient(135deg,var(--sky-400),var(--sky-500));
+    color:#fff;font-family:inherit;font-size:15px;font-weight:700;
+    padding:15px;cursor:pointer;box-shadow:0 6px 16px rgba(59,141,232,.25);transition:.15s;
+  }
+  .add-ex:hover{transform:translateY(-1px);}
+  .add-ex:active{transform:translateY(0);}
+  .add-ex:disabled{opacity:.5;cursor:default;transform:none;}
+  .add-ex.cardio{
+    background:linear-gradient(135deg,#3cc9a7,#1e9e7e);
+    box-shadow:0 6px 16px rgba(30,158,126,.25);
+  }
+
+  .loading{text-align:center;color:var(--ink-soft);padding:50px 0;font-size:14px;}
+  .spinner{
+    width:26px;height:26px;border:3px solid var(--sky-100);border-top-color:var(--sky-400);
+    border-radius:50%;margin:0 auto 10px;animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ===== 입력 시트 ===== */
+  .sheet-bg{
+    display:none;position:fixed;inset:0;background:rgba(28,43,58,.35);z-index:50;
+  }
+  .sheet-bg.show{display:block;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:51;
+    background:var(--white);border-radius:20px 20px 0 0;
+    padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 30px rgba(40,90,150,.2);
+    transform:translateY(105%);transition:transform .22s ease;
+    max-width:560px;margin:0 auto;
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet-title{font-size:15px;font-weight:800;margin-bottom:10px;}
+  .sheet-title .hl{color:var(--sky-500);}
+  .copy-prev{
+    display:none;width:100%;margin-bottom:12px;
+    border:1px solid var(--sky-200);background:var(--sky-50);color:var(--sky-600);
+    font-family:inherit;font-size:14px;font-weight:700;border-radius:12px;
+    padding:11px;cursor:pointer;transition:.15s;
+  }
+  .copy-prev.show{display:block;}
+  .copy-prev:hover{background:var(--sky-100);}
+  .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .sheet-grid.single{grid-template-columns:1fr;}
+  .sheet-field label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;}
+  .sheet-field select{
+    width:100%;font-family:inherit;font-size:17px;font-weight:700;color:var(--ink);
+    border:1px solid var(--line);background:var(--sky-50);border-radius:12px;
+    padding:13px 10px;outline:none;cursor:pointer;
+    appearance:none;-webkit-appearance:none;text-align:center;text-align-last:center;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%235a6b7d' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;
+  }
+  .sheet-field select:focus{border-color:var(--sky-400);}
+  .sheet-btns{display:flex;gap:8px;}
+  .sheet-btn{
+    flex:1;border:none;border-radius:12px;font-family:inherit;
+    font-size:15px;font-weight:700;padding:13px;cursor:pointer;transition:.15s;
+  }
+  .sheet-btn.ok{background:var(--sky-500);color:#fff;}
+  .sheet-btn.ok:hover{background:var(--sky-600);}
+  .sheet-btn.rm{background:#fff0f0;color:#e05555;flex:0 0 auto;padding:13px 16px;}
+  .sheet-btn.rm:hover{background:#ffe0e0;}
+
+  /* 이름 입력 시트 (16px 입력 → iOS 확대 방지) */
+  .name-sheet-input{
+    width:100%;font-family:inherit;font-size:16px;font-weight:700;color:var(--ink);
+    border:1px solid var(--line);background:var(--sky-50);border-radius:12px;
+    padding:13px 14px;outline:none;margin-bottom:14px;
+  }
+  .name-sheet-input:focus{border-color:var(--sky-400);box-shadow:0 0 0 3px rgba(90,166,245,.15);}
+  .name-sheet-input::placeholder{color:#aec3d6;}
+
+  /* ===== 백업 ===== */
+  .backup{
+    margin-top:22px;background:var(--white);border:1px solid var(--line);
+    border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);
+  }
+  .backup-head{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;}
+  .backup-head span:first-child{font-size:14px;font-weight:700;}
+  .backup-sub{font-size:12px;color:var(--ink-soft);}
+  .backup-btns{display:flex;gap:8px;margin-bottom:8px;}
+  .bk-btn{
+    flex:1;border:1px solid var(--sky-200);background:var(--sky-50);color:var(--sky-600);
+    font-family:inherit;font-size:13px;font-weight:700;border-radius:10px;
+    padding:10px;cursor:pointer;transition:.15s;
+  }
+  .bk-btn:hover{background:var(--sky-100);}
+  #backupBox{
+    width:100%;height:84px;resize:vertical;font-family:inherit;font-size:16px;
+    border:1px solid var(--line);border-radius:10px;padding:10px;outline:none;
+    color:var(--ink);background:var(--sky-50);
+  }
+  #backupBox:focus{border-color:var(--sky-400);}
+  #backupBox::placeholder{font-size:12px;}
+  .backup-msg{font-size:12px;font-weight:600;margin-top:6px;min-height:16px;}
+  .backup-msg.ok{color:#2e8b57;}
+  .backup-msg.bad{color:#c0392b;}
+
+  @media (max-width:400px){
+    .title{font-size:21px;}
+    .name-col{min-width:66px;max-width:78px;}
+    .set-cell{min-width:48px;}
+    .cell-btn .w{font-size:11px;}
+    .cell-btn .r{font-size:9px;}
+    thead th{font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title"><span class="dot"></span>운동 기록</div>
+    <div class="sub">셀을 누르면 입력할 수 있어요. 입력하면 자동 저장돼요.</div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="datebar">
+    <button class="day-nav" id="prevDay" title="이전 날">◀</button>
+    <input type="date" id="date">
+    <button class="day-nav" id="nextDay" title="다음 날">▶</button>
+    <span class="saved-tag" id="savedTag">저장됨</span>
+  </div>
+
+  <div class="recorded-days" id="recordedDays"></div>
+
+  <div id="tablesArea">
+    <div class="table-card"><div class="loading"><div class="spinner"></div>기록을 불러오는 중...</div></div>
+  </div>
+
+  <div class="add-btns">
+    <button class="add-ex" id="addEx" disabled>+ 근력</button>
+    <button class="add-ex cardio" id="addCardio" disabled>+ 유산소</button>
+  </div>
+
+  <div class="backup">
+    <div class="backup-head">
+      <span>📦 기록 백업</span>
+      <span class="backup-sub">폰을 바꾸거나 브라우저 데이터를 지울 때를 대비한 수동 백업이에요.</span>
+    </div>
+    <div class="backup-btns">
+      <button class="bk-btn" id="exportBtn">기록 내보내기</button>
+      <button class="bk-btn" id="importBtn">불러오기</button>
+    </div>
+    <textarea id="backupBox" placeholder="① 내보내기: 누르면 여기에 백업 코드가 나와요 → 전체 복사해서 메모앱에 저장&#10;② 불러오기: 메모앱의 백업 코드를 여기 붙여넣고 불러오기를 누르세요" spellcheck="false"></textarea>
+    <div class="backup-msg" id="backupMsg"></div>
+  </div>
+</div>
+
+<!-- 세트/시간 입력 시트 -->
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-title" id="sheetTitle">입력</div>
+  <button class="copy-prev" id="copyPrev">⧉ 이전 세트와 동일</button>
+  <div class="sheet-grid" id="sheetGrid">
+    <div class="sheet-field" id="fieldWeight">
+      <label>중량</label>
+      <select id="sheetWeight"></select>
+    </div>
+    <div class="sheet-field" id="fieldReps">
+      <label>개수</label>
+      <select id="sheetReps"></select>
+    </div>
+    <div class="sheet-field" id="fieldTime" style="display:none;">
+      <label>시간</label>
+      <select id="sheetTime"></select>
+    </div>
+  </div>
+  <div class="sheet-btns">
+    <button class="sheet-btn rm" id="sheetDelete">삭제</button>
+    <button class="sheet-btn ok" id="sheetClose">완료</button>
+  </div>
+</div>
+
+<!-- 운동 이름 입력 시트 (입력칸 16px → iOS 화면확대 방지) -->
+<div class="sheet" id="nameSheet">
+  <div class="sheet-title" id="nameSheetTitle">운동 이름</div>
+  <input type="text" class="name-sheet-input" id="nameSheetInput" placeholder="운동 이름 (예: 암풀다운)">
+  <div class="sheet-btns">
+    <button class="sheet-btn ok" id="nameSheetClose">완료</button>
+  </div>
+</div>
+
+<script>
+  const REPS = [5,7,10,13,15,20,30];
+  const WEIGHTS = [0,1,2,3,4,5,6,7.5,10,12.5,15,16,17.5,20,22.5,25,27.5,30,35,40,45,50,55,60,70,80,90,100];
+  const TIMES = [5,10,15,20,25,30,35,40,45,50,60,70,80,90,120];   // 분
+  const STORAGE_KEY = 'workout-data';
+  const dateInput = document.getElementById('date');
+  const tablesArea = document.getElementById('tablesArea');
+  const addExBtn = document.getElementById('addEx');
+  const addCardioBtn = document.getElementById('addCardio');
+  const savedTag = document.getElementById('savedTag');
+  const banner = document.getElementById('banner');
+  const recordedDays = document.getElementById('recordedDays');
+
+  let store = {};
+  let saveMode = 'memory';
+  let saveTimer = null;
+  let openMemos = new Set();
+
+  // ===== 저장 백엔드 =====
+  async function backendSet(payload){
+    if(saveMode==='claude'){
+      try{ await window.storage.set(STORAGE_KEY, payload); }catch(e){}
+      try{
+        const check = await window.storage.get(STORAGE_KEY);
+        if(check && check.value === payload) return true;
+      }catch(e){}
+      return false;
+    }
+    if(saveMode==='local'){
+      try{
+        localStorage.setItem(STORAGE_KEY, payload);
+        return localStorage.getItem(STORAGE_KEY) === payload;
+      }catch(e){ return false; }
+    }
+    return false;
+  }
+  async function backendGet(){
+    if(saveMode==='claude'){
+      try{
+        const r = await window.storage.get(STORAGE_KEY);
+        return (r && r.value) ? r.value : null;
+      }catch(e){ return null; }
+    }
+    if(saveMode==='local'){
+      try{ return localStorage.getItem(STORAGE_KEY); }catch(e){ return null; }
+    }
+    return null;
+  }
+  async function detectBackend(){
+    const probe = '__probe__' + Date.now();
+    if(typeof window.storage !== 'undefined' && window.storage){
+      try{
+        try{ await window.storage.set(STORAGE_KEY+'-probe', probe); }catch(e){}
+        const r = await window.storage.get(STORAGE_KEY+'-probe');
+        if(r && r.value === probe){ saveMode='claude'; return; }
+      }catch(e){}
+    }
+    try{
+      localStorage.setItem(STORAGE_KEY+'-probe', probe);
+      if(localStorage.getItem(STORAGE_KEY+'-probe') === probe){
+        localStorage.removeItem(STORAGE_KEY+'-probe');
+        saveMode='local'; return;
+      }
+    }catch(e){}
+    saveMode='memory';
+  }
+
+  function todayStr(){
+    const d = new Date();
+    const off = d.getTimezoneOffset();
+    return new Date(d.getTime()-off*60000).toISOString().slice(0,10);
+  }
+  dateInput.value = todayStr();
+  function curKey(){ return dateInput.value; }
+  function getData(){
+    if(!store[curKey()]) store[curKey()] = [];
+    return store[curKey()];
+  }
+  function shiftDay(delta){
+    const d = new Date(dateInput.value + 'T00:00:00');
+    d.setDate(d.getDate()+delta);
+    const off = d.getTimezoneOffset();
+    dateInput.value = new Date(d.getTime()-off*60000).toISOString().slice(0,10);
+    openMemos.clear();
+    render(); renderRecordedDays();
+  }
+  document.getElementById('prevDay').addEventListener('click',()=>shiftDay(-1));
+  document.getElementById('nextDay').addEventListener('click',()=>shiftDay(1));
+
+  function migrate(){
+    for(const day of Object.keys(store)){
+      if(!Array.isArray(store[day])) continue;
+      store[day].forEach(ex=>{
+        if(typeof ex.memo === 'undefined') ex.memo = '';
+        if(typeof ex.type === 'undefined') ex.type = 'strength';
+        if(ex.type==='strength'){
+          if(!Array.isArray(ex.sets)) ex.sets = [];
+          ex.sets = ex.sets.map(s=>{
+            if(s===null || typeof s==='number') return {reps:s, weight:null};
+            return s;
+          });
+        }
+      });
+    }
+  }
+
+  function setTag(state, text){
+    savedTag.className = 'saved-tag' + (state ? ' '+state : '');
+    savedTag.textContent = text;
+  }
+  function showBanner(msg){
+    banner.classList.add('show');
+    banner.textContent = msg;
+  }
+  function scheduleSave(){
+    setTag('saving','저장 중...');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 600);
+  }
+  async function doSave(){
+    for(const k of Object.keys(store)){
+      if(Array.isArray(store[k]) && store[k].length===0) delete store[k];
+    }
+    const payload = JSON.stringify(store);
+    if(saveMode==='memory'){
+      setTag('','임시 저장');
+      renderRecordedDays();
+      return;
+    }
+    const ok = await backendSet(payload);
+    if(ok){
+      setTag('', saveMode==='local' ? '저장됨 ✓ (브라우저)' : '저장됨 ✓');
+      banner.classList.remove('show');
+    }else{
+      saveMode='memory';
+      setTag('error','저장 실패');
+      showBanner('⚠️ 영구 저장이 작동하지 않아요. 아래 "기록 내보내기"로 백업해 두세요.');
+    }
+    renderRecordedDays();
+  }
+
+  async function load(){
+    await detectBackend();
+    if(saveMode==='memory'){
+      showBanner('⚠️ 이 환경에선 영구 저장이 안 돼요. "기록 내보내기"로 백업하고, 다음에 "불러오기"로 복원하세요.');
+      setTag('','임시 저장');
+    }else{
+      const raw = await backendGet();
+      if(raw){
+        try{ store = JSON.parse(raw); migrate(); }catch(e){ store = {}; }
+      }
+      setTag('', saveMode==='local' ? '저장됨 ✓ (브라우저)' : '저장됨 ✓');
+    }
+    addExBtn.disabled = false;
+    addCardioBtn.disabled = false;
+    render(); renderRecordedDays(); updateBackupHint();
+  }
+
+  function renderRecordedDays(){
+    const keys = Object.keys(store).filter(k=>Array.isArray(store[k]) && store[k].length>0).sort().reverse();
+    if(keys.length===0){ recordedDays.innerHTML=''; return; }
+    recordedDays.innerHTML = '기록한 날: ';
+    keys.slice(0,8).forEach(k=>{
+      const chip = document.createElement('span');
+      chip.className='chip' + (k===curKey() ? ' today-chip' : '');
+      chip.textContent = k.slice(5).replace('-','/');
+      chip.title = k;
+      chip.addEventListener('click',()=>{ dateInput.value=k; openMemos.clear(); render(); renderRecordedDays(); });
+      recordedDays.appendChild(chip);
+    });
+    if(keys.length>8){
+      const more=document.createElement('span');
+      more.textContent=' 외 '+(keys.length-8)+'일';
+      recordedDays.appendChild(more);
+    }
+  }
+
+  // ===== 입력 시트 (세트 / 시간) =====
+  const sheetBg = document.getElementById('sheetBg');
+  const sheet = document.getElementById('sheet');
+  const sheetTitle = document.getElementById('sheetTitle');
+  const sheetGrid = document.getElementById('sheetGrid');
+  const sheetWeight = document.getElementById('sheetWeight');
+  const sheetReps = document.getElementById('sheetReps');
+  const sheetTime = document.getElementById('sheetTime');
+  const fieldWeight = document.getElementById('fieldWeight');
+  const fieldReps = document.getElementById('fieldReps');
+  const fieldTime = document.getElementById('fieldTime');
+  let editTarget = null;   // {ex, si} (근력) 또는 {ex, cardio:true}
+
+  function fillSelect(sel, options, value, unit, placeholder){
+    sel.innerHTML='';
+    const blank=document.createElement('option');
+    blank.value=''; blank.textContent=placeholder;
+    sel.appendChild(blank);
+    options.forEach(v=>{
+      const o=document.createElement('option');
+      o.value=v;
+      o.textContent=(v===0 && unit==='kg')?'맨몸':v+unit;
+      if(v===value) o.selected=true;
+      sel.appendChild(o);
+    });
+  }
+
+  function openSetSheet(ex, si){
+    editTarget = {ex, si};
+    const st = ex.sets[si];
+    sheetTitle.innerHTML = '<span class="hl">'+escapeHtml(ex.name||'운동')+'</span> · '+(si+1)+'세트';
+    fillSelect(sheetWeight, WEIGHTS, st.weight, 'kg', '중량 선택');
+    fillSelect(sheetReps, REPS, st.reps, '개', '개수 선택');
+    fieldWeight.style.display=''; fieldReps.style.display=''; fieldTime.style.display='none';
+    sheetGrid.classList.remove('single');
+    const prev = si>0 ? ex.sets[si-1] : null;
+    const copyBtn = document.getElementById('copyPrev');
+    if(prev && (prev.weight!=null || prev.reps!=null)){
+      const w = prev.weight==null ? '–' : (prev.weight===0?'맨몸':prev.weight+'kg');
+      const r = prev.reps==null ? '–' : prev.reps+'개';
+      copyBtn.textContent='⧉ 이전 세트와 동일 ('+w+' × '+r+')';
+      copyBtn.classList.add('show');
+    }else{
+      copyBtn.classList.remove('show');
+    }
+    sheetBg.classList.add('show');
+    sheet.classList.add('show');
+  }
+
+  function openCardioSheet(ex){
+    editTarget = {ex, cardio:true};
+    sheetTitle.innerHTML = '<span class="hl">'+escapeHtml(ex.name||'유산소')+'</span> · 시간';
+    fillSelect(sheetTime, TIMES, ex.minutes==null?null:ex.minutes, '분', '시간 선택');
+    fieldWeight.style.display='none'; fieldReps.style.display='none'; fieldTime.style.display='';
+    sheetGrid.classList.add('single');
+    document.getElementById('copyPrev').classList.remove('show');
+    sheetBg.classList.add('show');
+    sheet.classList.add('show');
+  }
+
+  function closeSheet(){
+    sheetBg.classList.remove('show');
+    sheet.classList.remove('show');
+    editTarget = null;
+    render();
+  }
+  sheetWeight.addEventListener('change',()=>{
+    if(!editTarget || editTarget.cardio) return;
+    editTarget.ex.sets[editTarget.si].weight = sheetWeight.value===''?null:Number(sheetWeight.value);
+    scheduleSave();
+  });
+  sheetReps.addEventListener('change',()=>{
+    if(!editTarget || editTarget.cardio) return;
+    editTarget.ex.sets[editTarget.si].reps = sheetReps.value===''?null:Number(sheetReps.value);
+    scheduleSave();
+  });
+  sheetTime.addEventListener('change',()=>{
+    if(!editTarget || !editTarget.cardio) return;
+    editTarget.ex.minutes = sheetTime.value===''?null:Number(sheetTime.value);
+    scheduleSave();
+  });
+  document.getElementById('sheetClose').addEventListener('click',closeSheet);
+  sheetBg.addEventListener('click',()=>{ closeSheet(); closeNameSheet(); });
+  document.getElementById('copyPrev').addEventListener('click',()=>{
+    if(!editTarget || editTarget.cardio || editTarget.si===0) return;
+    const prev = editTarget.ex.sets[editTarget.si-1];
+    const cur = editTarget.ex.sets[editTarget.si];
+    cur.weight = prev.weight;
+    cur.reps = prev.reps;
+    scheduleSave();
+    closeSheet();
+  });
+  document.getElementById('sheetDelete').addEventListener('click',()=>{
+    if(!editTarget) return;
+    if(editTarget.cardio){
+      editTarget.ex.minutes = null;   // 유산소는 시간만 비움 (행 삭제는 ×로)
+    }else{
+      editTarget.ex.sets.splice(editTarget.si,1);
+    }
+    scheduleSave();
+    closeSheet();
+  });
+
+  // ===== 운동 이름 입력 시트 (16px 입력칸 → 화면확대 방지) =====
+  const nameSheet = document.getElementById('nameSheet');
+  const nameSheetInput = document.getElementById('nameSheetInput');
+  let nameTarget = null;
+  function openNameSheet(ex){
+    nameTarget = ex;
+    nameSheetInput.value = ex.name||'';
+    nameSheetInput.placeholder = ex.type==='cardio' ? '유산소 이름 (예: 러닝머신)' : '운동 이름 (예: 암풀다운)';
+    sheetBg.classList.add('show');
+    nameSheet.classList.add('show');
+    setTimeout(()=>nameSheetInput.focus(), 230);
+  }
+  function closeNameSheet(){
+    if(!nameSheet.classList.contains('show')) return;
+    sheetBg.classList.remove('show');
+    nameSheet.classList.remove('show');
+    nameTarget = null;
+    render();
+  }
+  nameSheetInput.addEventListener('input',()=>{
+    if(!nameTarget) return;
+    nameTarget.name = nameSheetInput.value;
+    scheduleSave();
+  });
+  nameSheetInput.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter') closeNameSheet();
+  });
+  document.getElementById('nameSheetClose').addEventListener('click',closeNameSheet);
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function exerciseHasContent(ex){
+    if(ex.name && ex.name.trim()) return true;
+    if(ex.memo && ex.memo.trim()) return true;
+    if(ex.type==='cardio') return ex.minutes!=null;
+    return ex.sets.some(s=>s && (s.reps!=null || s.weight!=null));
+  }
+
+  function cellLabel(st){
+    const w = st.weight==null ? null : (st.weight===0 ? '맨몸' : st.weight+'kg');
+    const r = st.reps==null ? null : st.reps+'개';
+    if(w==null && r==null) return null;
+    return {w: w||'–', r: r||'–'};
+  }
+
+  // 종목명 칸 생성 (근력/유산소 공용)
+  function buildNameCell(ex, dataIndex, data){
+    const tdName=document.createElement('td');
+    tdName.className='name-col';
+    const nameCell=document.createElement('div');
+    nameCell.className='name-cell';
+
+    const nameBtn=document.createElement('button');
+    nameBtn.className='ex-name-btn' + ((ex.name && ex.name.trim())?'':' placeholder');
+    nameBtn.textContent = (ex.name && ex.name.trim()) ? ex.name : '이름 입력';
+    nameBtn.addEventListener('click',()=>openNameSheet(ex));
+
+    const btns=document.createElement('div');
+    btns.className='name-btns';
+    const memoBtn=document.createElement('button');
+    memoBtn.className='mini-btn memo' + ((ex.memo && ex.memo.trim())?' has-memo':'');
+    memoBtn.textContent='📝'; memoBtn.title='메모';
+    memoBtn.addEventListener('click',()=>{
+      if(openMemos.has(dataIndex)) openMemos.delete(dataIndex); else openMemos.add(dataIndex);
+      render();
+    });
+    const delBtn=document.createElement('button');
+    delBtn.className='mini-btn del'; delBtn.textContent='×'; delBtn.title='삭제';
+    delBtn.addEventListener('click',()=>{
+      if(exerciseHasContent(ex) && !delBtn.classList.contains('arm')){
+        delBtn.classList.add('arm');
+        delBtn.textContent='삭제?';
+        setTimeout(()=>{ delBtn.classList.remove('arm'); delBtn.textContent='×'; }, 2500);
+        return;
+      }
+      data.splice(dataIndex,1); openMemos.delete(dataIndex); scheduleSave(); render();
+    });
+    btns.appendChild(memoBtn); btns.appendChild(delBtn);
+    nameCell.appendChild(nameBtn); nameCell.appendChild(btns);
+    tdName.appendChild(nameCell);
+    return {tdName, memoBtn};
+  }
+
+  function buildMemoRow(ex, memoBtn, colSpan){
+    const mr=document.createElement('tr');
+    mr.className='memo-row';
+    const mtd=document.createElement('td');
+    mtd.colSpan=colSpan;
+    const ta=document.createElement('textarea');
+    ta.placeholder='특이사항 메모 (예: 마지막 세트 힘들었음, 다음엔 2.5kg 올리기)';
+    ta.value=ex.memo||'';
+    ta.addEventListener('input',()=>{
+      ex.memo=ta.value;
+      memoBtn.classList.toggle('has-memo', !!ta.value.trim());
+      scheduleSave();
+    });
+    mtd.appendChild(ta);
+    mr.appendChild(mtd);
+    return mr;
+  }
+
+  // ===== 렌더링 =====
+  function render(){
+    const data = getData();
+    tablesArea.innerHTML='';
+
+    const strength = [];   // [dataIndex, ex]
+    const cardio = [];
+    data.forEach((ex,i)=>{
+      if(ex.type==='cardio') cardio.push([i,ex]);
+      else strength.push([i,ex]);
+    });
+
+    if(data.length===0){
+      const card=document.createElement('div');
+      card.className='table-card';
+      card.innerHTML='<div class="empty-state"><div class="big">🏋️</div>아직 기록이 없어요.<br>아래 버튼으로 운동을 추가해봐요!</div>';
+      tablesArea.appendChild(card);
+      return;
+    }
+
+    // ----- 근력 표 -----
+    if(strength.length>0){
+      const card=document.createElement('div');
+      card.className='table-card';
+      const scroll=document.createElement('div');
+      scroll.className='table-scroll';
+      const maxSets = Math.max(1, ...strength.map(([,ex])=>ex.sets.length));
+
+      const table=document.createElement('table');
+      const thead=document.createElement('thead');
+      const hr=document.createElement('tr');
+      const hName=document.createElement('th');
+      hName.className='name-col'; hName.textContent='종목명';
+      hr.appendChild(hName);
+      for(let i=0;i<maxSets;i++){
+        const th=document.createElement('th');
+        th.textContent=(i+1)+'세트';
+        hr.appendChild(th);
+      }
+      hr.appendChild(document.createElement('th'));
+      thead.appendChild(hr);
+      table.appendChild(thead);
+
+      const tbody=document.createElement('tbody');
+      strength.forEach(([di,ex])=>{
+        const tr=document.createElement('tr');
+        const {tdName, memoBtn} = buildNameCell(ex, di, data);
+        tr.appendChild(tdName);
+
+        for(let si=0; si<maxSets; si++){
+          const td=document.createElement('td');
+          td.className='set-cell';
+          if(si < ex.sets.length){
+            const st=ex.sets[si];
+            const btn=document.createElement('button');
+            const label=cellLabel(st);
+            if(label){
+              btn.className='cell-btn';
+              btn.innerHTML='<span class="w">'+escapeHtml(label.w)+'</span><span class="r">'+escapeHtml(label.r)+'</span>';
+            }else{
+              btn.className='cell-btn blank';
+              btn.textContent='입력';
+              btn.style.fontSize='12px';
+            }
+            btn.addEventListener('click',()=>openSetSheet(ex,si));
+            td.appendChild(btn);
+          }
+          tr.appendChild(td);
+        }
+
+        const tdAdd=document.createElement('td');
+        tdAdd.className='set-cell add-col';
+        const addBtn=document.createElement('button');
+        addBtn.className='cell-btn';
+        addBtn.textContent='＋';
+        addBtn.title='세트 추가 (직전 세트 복사)';
+        addBtn.addEventListener('click',()=>{
+          const last = ex.sets[ex.sets.length-1];
+          if(last && last.weight!=null && last.reps!=null){
+            ex.sets.push({reps:last.reps, weight:last.weight});
+            scheduleSave(); render();
+            return;
+          }
+          ex.sets.push({reps:null, weight: last ? last.weight : null});
+          scheduleSave(); render();
+          openSetSheet(ex, ex.sets.length-1);
+        });
+        tdAdd.appendChild(addBtn);
+        tr.appendChild(tdAdd);
+        tbody.appendChild(tr);
+
+        if(openMemos.has(di)){
+          tbody.appendChild(buildMemoRow(ex, memoBtn, maxSets+2));
+        }
+      });
+      table.appendChild(tbody);
+      scroll.appendChild(table);
+      card.appendChild(scroll);
+      tablesArea.appendChild(card);
+    }
+
+    // ----- 유산소 표 -----
+    if(cardio.length>0){
+      const card=document.createElement('div');
+      card.className='table-card';
+      const label=document.createElement('div');
+      label.className='table-label cardio';
+      label.textContent='유산소';
+      card.appendChild(label);
+      const scroll=document.createElement('div');
+      scroll.className='table-scroll';
+
+      const table=document.createElement('table');
+      table.className='cardio-table';
+      const thead=document.createElement('thead');
+      const hr=document.createElement('tr');
+      const hName=document.createElement('th');
+      hName.className='name-col'; hName.textContent='종목명';
+      hr.appendChild(hName);
+      const hTime=document.createElement('th');
+      hTime.textContent='시간';
+      hr.appendChild(hTime);
+      thead.appendChild(hr);
+      table.appendChild(thead);
+
+      const tbody=document.createElement('tbody');
+      cardio.forEach(([di,ex])=>{
+        const tr=document.createElement('tr');
+        const {tdName, memoBtn} = buildNameCell(ex, di, data);
+        tr.appendChild(tdName);
+
+        const td=document.createElement('td');
+        td.className='set-cell time-cell';
+        const btn=document.createElement('button');
+        if(ex.minutes!=null){
+          btn.className='cell-btn';
+          btn.innerHTML='<span class="w">'+ex.minutes+'분</span>';
+        }else{
+          btn.className='cell-btn blank';
+          btn.textContent='시간 입력';
+          btn.style.fontSize='12px';
+        }
+        btn.addEventListener('click',()=>openCardioSheet(ex));
+        td.appendChild(btn);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+
+        if(openMemos.has(di)){
+          tbody.appendChild(buildMemoRow(ex, memoBtn, 2));
+        }
+      });
+      table.appendChild(tbody);
+      scroll.appendChild(table);
+      card.appendChild(scroll);
+      tablesArea.appendChild(card);
+    }
+  }
+
+  addExBtn.addEventListener('click',()=>{
+    const ex = {type:'strength',name:'',memo:'',sets:[{reps:null,weight:null}]};
+    getData().push(ex);
+    scheduleSave(); render();
+    openNameSheet(ex);   // 추가하자마자 이름부터 입력
+  });
+  addCardioBtn.addEventListener('click',()=>{
+    const ex = {type:'cardio',name:'',memo:'',minutes:null};
+    getData().push(ex);
+    scheduleSave(); render();
+    openNameSheet(ex);
+  });
+
+  dateInput.addEventListener('change',()=>{ openMemos.clear(); render(); renderRecordedDays(); });
+
+  // ===== 백업 =====
+  const backupBox = document.getElementById('backupBox');
+  const backupMsg = document.getElementById('backupMsg');
+  const backupSub = document.querySelector('.backup-sub');
+
+  function updateBackupHint(){
+    const hasRecords = Object.keys(store).some(k=>Array.isArray(store[k]) && store[k].length>0);
+    if(!hasRecords){ return; }
+    const last = store._meta && store._meta.lastBackup;
+    if(!last){
+      backupSub.textContent = '아직 백업한 적이 없어요. 가끔 내보내기로 백업해 두는 걸 추천!';
+      return;
+    }
+    const days = Math.floor((Date.now()-last)/86400000);
+    backupSub.textContent = days===0
+      ? '마지막 백업: 오늘 ✓'
+      : '마지막 백업: '+days+'일 전' + (days>=7 ? ' — 슬슬 한 번 백업해 두는 게 좋아요!' : '');
+  }
+
+  function bkMsg(text, ok){
+    backupMsg.textContent = text;
+    backupMsg.className = 'backup-msg ' + (ok ? 'ok' : 'bad');
+  }
+  document.getElementById('exportBtn').addEventListener('click', async ()=>{
+    store._meta = Object.assign({}, store._meta, {lastBackup: Date.now()});
+    const payload = JSON.stringify(store);
+    backupBox.value = payload;
+    backupBox.select();
+    let copied = false;
+    try{
+      await navigator.clipboard.writeText(payload);
+      copied = true;
+    }catch(e){
+      try{ copied = document.execCommand('copy'); }catch(e2){}
+    }
+    scheduleSave();
+    updateBackupHint();
+    const dayCount = Object.keys(store).filter(k=>k!=='_meta' && Array.isArray(store[k]) && store[k].length>0).length;
+    bkMsg(copied
+      ? '복사 완료! ('+dayCount+'일치 전체 기록) 메모앱에 붙여넣어 저장해 두세요.'
+      : '아래 코드를 길게 눌러 전체 복사한 뒤 메모앱에 저장하세요. ('+dayCount+'일치)', true);
+  });
+  document.getElementById('importBtn').addEventListener('click', ()=>{
+    const raw = backupBox.value.trim();
+    if(!raw){ bkMsg('먼저 백업 코드를 붙여넣어 주세요.', false); return; }
+    try{
+      const parsed = JSON.parse(raw);
+      if(typeof parsed !== 'object' || parsed===null || Array.isArray(parsed)) throw new Error('형식 오류');
+
+      // 불러온 데이터를 기존 기록에 "합치기" (덮어쓰지 않음)
+      let added = 0, conflict = 0, conflictDays = [];
+      for(const day of Object.keys(parsed)){
+        if(day === '_meta') continue;                 // 메타 정보는 합치지 않음
+        if(!Array.isArray(parsed[day])) continue;
+        if(parsed[day].length === 0) continue;
+        const existing = store[day];
+        if(!existing || existing.length === 0){
+          // 그 날짜가 비어 있으면 그냥 추가
+          store[day] = parsed[day];
+          added++;
+        }else{
+          // 이미 기록이 있는 날짜 → 충돌. 안전하게 기존 것을 유지
+          conflict++;
+          conflictDays.push(day.slice(5).replace('-','/'));
+        }
+      }
+
+      migrate();
+      render(); renderRecordedDays(); updateBackupHint();
+      scheduleSave();
+
+      if(conflict === 0){
+        bkMsg(added>0 ? added+'일치 기록을 합쳤어요! 기존 기록은 그대로예요.' : '새로 추가된 날짜는 없어요. (이미 다 있음)', true);
+      }else{
+        bkMsg('합치기 완료. '+added+'일 추가됨. 단, 이미 기록이 있던 '+conflictDays.join(', ')+'은(는) 기존 것을 지켰어요. 덮어쓰려면 그 날짜를 비우고 다시 불러오세요.', true);
+      }
+    }catch(e){
+      bkMsg('백업 코드 형식이 올바르지 않아요. 내보내기로 만든 코드 전체를 붙여넣어야 해요.', false);
+    }
+  });
+
+  load();
+</script>
+</body>
+</html>
 
